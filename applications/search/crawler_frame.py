@@ -28,10 +28,10 @@ class CrawlerFrame(IApplication):
     def __init__(self, frame):
         self.starttime = time()
         # Set app_id <student_id1>_<student_id2>...
-        self.app_id = "85723669_"
+        self.app_id = "85723669_18289085_33112951"
         # Set user agent string to IR W17 UnderGrad <student_id1>, <student_id2> ...
         # If Graduate studetn, change the UnderGrad part to Grad.
-        self.UserAgentString = "IR S17 UnderGrad 85723669,"
+        self.UserAgentString = "IR S17 UnderGrad 85723669, 18289085, 33112951"
 		
         self.frame = frame
         assert(self.UserAgentString != None)
@@ -92,6 +92,8 @@ def extract_next_links(rawDatas):
 
     Suggested library: lxml
     '''
+    for i in rawDatas:
+        outputLinks.append(i.url)
     return outputLinks
 
 def is_valid(url):
