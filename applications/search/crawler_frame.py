@@ -118,7 +118,8 @@ def is_valid(url):
     if re.match("^.*?(/.+?/).*?\1.*$|^.*?/(.+?/)\2.*$", parsed.path.lower()):
         return False
 
-    if re.match("^.*(/bin|/img|/logos|/socialmedia){2}.*$", parsed.path.lower()):
+    # avoid query that contains /bin|/img|/logos|/socialmedia
+    if re.match("^.*(/bin|/img|/logos|/socialmedia){3}.*$", parsed.query.lower()):
         return False
 
     try:
