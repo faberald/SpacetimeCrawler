@@ -93,7 +93,8 @@ def extract_next_links(rawDatas):
     Suggested library: lxml
     '''
     for i in rawDatas:
-        if is_valid(i.url):
+        if is_valid(i.url) and i.http_code == "200":
+            print i.http_code
             outputLinks.append(i.url)
     return outputLinks
 
@@ -115,6 +116,9 @@ def is_valid(url):
     # use regular expression to avoid reapting directories
     # https://support.archive-it.org/hc/en-us/community/posts/115000330506-How-to-avoid-crawler-traps-when-archiving-YouTube-videos
     if re.match("^.*?(/.+?/).*?\1.*$|^.*?/(.+?/)\2.*$", parsed.path.lower()):
+        return False
+
+    if re.match("^.*(/bin|/img|/logos|/socialmedia){2}.*$", parsed.path.lower()):
         return False
 
     try:
