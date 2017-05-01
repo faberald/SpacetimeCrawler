@@ -95,23 +95,29 @@ def extract_next_links(rawDatas):
     Suggested library: lxml
     '''
     for i in rawDatas:
-        if is_valid(i.url) and string.atoi(i.http_code) < 300:
-            conn = urllib2.urlopen(i.url)
+        if i.is_redirected:
+            url = i.final_url
+        else:
+            url = i.url
+        if is_valid(url) and string.atoi(i.http_code) < 300:
+            conn = urllib2.urlopen(url)
             page = conn.read()
             doc = html.fromstring(page)
-            doc.make_links_absolute(i.url)
+            doc.make_links_absolute(url)
             abslinks = list(doc.iterlinks())
             for v in range(len(abslinks)):
                 el,attr,link,pos = abslinks[v]
                 if is_valid(link):
                     outputLinks.append(link)
+        else:
+            i.bad_url = True
 
 
     # for i in rawDatas:
     #     if is_valid(i.url) and atoi(i.http_code) < 300:
     #         print i.http_code
     #         outputLinks.append(i.url)
-    
+
     # print outputLinks
     return outputLinks
 
