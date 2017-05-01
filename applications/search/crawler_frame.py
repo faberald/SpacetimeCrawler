@@ -2,9 +2,11 @@ import logging
 from datamodel.search.datamodel import ProducedLink, OneUnProcessedGroup, robot_manager, Link
 from spacetime.client.IApplication import IApplication
 from spacetime.client.declarations import Producer, GetterSetter, Getter
-#from lxml import html,etree
+from lxml import html,etree
 import re, os
 from time import time
+import urllib2
+import string
 
 try:
     # For python 2
@@ -93,9 +95,24 @@ def extract_next_links(rawDatas):
     Suggested library: lxml
     '''
     for i in rawDatas:
-        if is_valid(i.url) and i.http_code == "200":
-            print i.http_code
-            outputLinks.append(i.url)
+        if is_valid(i.url) and string.atoi(i.http_code) < 300:
+            conn = urllib2.urlopen(i.url)
+            page = conn.read()
+            doc = html.fromstring(page)
+            doc.make_links_absolute(i.url)
+            abslinks = list(doc.iterlinks())
+            for v in range(len(abslinks)):
+                el,attr,link,pos = abslinks[v]
+                if is_valid(link):
+                    outputLinks.append(link)
+
+
+    # for i in rawDatas:
+    #     if is_valid(i.url) and atoi(i.http_code) < 300:
+    #         print i.http_code
+    #         outputLinks.append(i.url)
+    
+    # print outputLinks
     return outputLinks
 
 def is_valid(url):
