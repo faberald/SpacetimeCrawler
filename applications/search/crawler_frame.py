@@ -33,8 +33,8 @@ class CrawlerFrame(IApplication):
         self.app_id = "85723669_18289085_33112951"
         # Set user agent string to IR W17 UnderGrad <student_id1>, <student_id2> ...
         # If Graduate studetn, change the UnderGrad part to Grad.
-        self.UserAgentString = "IR S17 UnderGrad 85723669, 18289085, 33112951"
-		
+        self.UserAgentString = "IR W17 UnderGrad 85723669, 18289085, 33112951"
+        
         self.frame = frame
         assert(self.UserAgentString != None)
         assert(self.app_id != "")
@@ -94,12 +94,13 @@ def extract_next_links(rawDatas):
 
     Suggested library: lxml
     '''
+    print len(rawDatas)
     for i in rawDatas:
         if i.is_redirected:
             url = i.final_url
         else:
             url = i.url
-        if is_valid(url) and string.atoi(i.http_code) < 300:
+        if  is_valid(url) and len(i.error_message) == 0 and string.atoi(i.http_code) < 400:
             conn = urllib2.urlopen(url)
             page = conn.read()
             doc = html.fromstring(page)
@@ -108,7 +109,15 @@ def extract_next_links(rawDatas):
             for v in range(len(abslinks)):
                 el,attr,link,pos = abslinks[v]
                 if is_valid(link):
-                    outputLinks.append(link)
+                    # try:
+                    #     check_http_code = urllib2.urlopen(link)
+                    # except urllib2.HTTPError as e:
+                    #     print "HTTPError"
+                    # except urllib2.URLError as e:
+                    #     print "URLError"
+                    # else:
+                    i.out_links.add(link)
+            outputLinks.extend(list(i.out_links))
         else:
             i.bad_url = True
 
@@ -129,6 +138,8 @@ def is_valid(url):
     This is a great place to filter out crawler traps.
     '''
     # check wheter the url is in abosute form
+    file = open("bad_urls.txt", 'w')
+    print url
     parsed = urlparse(url)
     if parsed.scheme not in set(["http", "https"]):
         return False
@@ -136,13 +147,80 @@ def is_valid(url):
     if "calendar.ics.uci.edu" in parsed.hostname:
         return False
 
+    # long no meaning url
+    if len(url) > 300:
+        return False
+
+    # if url == "https://duttgroup.ics.uci.edu/doku.php/home?do=media&ns=":
+    #     return False
+
     # use regular expression to avoid reapting directories
     # https://support.archive-it.org/hc/en-us/community/posts/115000330506-How-to-avoid-crawler-traps-when-archiving-YouTube-videos
-    if re.match("^.*?(/.+?/).*?\1.*$|^.*?/(.+?/)\2.*$", parsed.path.lower()):
+    if re.match(r"^.*?(/.+?/).*?\1.*$|^.*?/(.+?/)\2.*$", parsed.path.lower()):
+        file.write(url+"\n")
+        return False
+
+    #check repeated_url using token
+    token_dict = defaultdict(int)
+    token_list = re.split("/", parsed.geturl())
+        
+    for token in token_list:
+        token_dict[token] += 1
+
+    sorted_dict = sorted(token_dict.items(), key = lambda t: t[1], reverse = True)
+    for key,value in sorted_dict:
+        if value >= 3:
+            return False
+
+    # if re.match(r"^.*?(.+_).*?\1.*$|^.*?/(.+?_)\2.*$", parsed.path.lower()):
+    #     return False
+
+    if re.match(r"^.*(_doku.php_|.jpg|&ns|_amp|.png){1}.*$", parsed.query.lower()) or re.match(r"^.*(_doku.php_|.jpg|&ns|_amp|.png){1}.*$", parsed.path.lower()):
+        return False
+
+    if re.match(r"^.*(/extreme_recruit.php|/grad){2}.*$", parsed.query.lower()):
+
+        return False
+
+    if re.match(r"^.*(.php/).*$", parsed.path.lower()):
+        return False
+
+    # there is a better version 
+    if re.match(r"^.*(//).*$", parsed.path.lower()):
+        return False
+
+    if re.match(r"^.*(qa_petitions/).*$", parsed.path.lower()):
+        return False
+
+    if re.match(r"^.*(qa_graduation/).*$", parsed.path.lower()):
+        return False
+
+    if re.match(r"^.*(add_drop_changeoption/).*$", parsed.path.lower()):
+        return False
+
+    if re.match(r"^.*(grade_options/).*$", parsed.path.lower()):
+        return False
+
+    # http://www.ics.uci.edu/ugrad/index/grad/funding/policies/computing/account.php
+    if re.match(r"^.*(/ugrad/index).*$", parsed.path.lower()):
+        return False
+
+    if re.match(r"^.*(/grad/index).*$", parsed.path.lower()):
+        return False
+
+    if re.match(r"^.*(afg).*$", parsed.query.lower()):
         return False
 
     # avoid query that contains /bin|/img|/logos|/socialmedia
-    if re.match("^.*(/bin|/img|/logos|/socialmedia){3}.*$", parsed.query.lower()):
+    if re.match("^.*(/bin|/img|/logos|/socialmedia){4}.*$", parsed.query.lower()):
+        return False
+
+    # make sure the url does not direct to a file 
+    if re.match(".*\.(css|js|bmp|gif|jpe?g|ico" + "|png|tiff?|mid|mp2|mp3|mp4"\
+            + "|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf" \
+            + "|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso|epub|dll|cnf|tgz|sha1" \
+            + "|thmx|mso|arff|rtf|jar|csv"\
+            + "|rm|smil|wma|zip|rar|gz|lif|php)$", url.lower()):
         return False
 
     try:
@@ -151,7 +229,7 @@ def is_valid(url):
             + "|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf" \
             + "|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso|epub|dll|cnf|tgz|sha1" \
             + "|thmx|mso|arff|rtf|jar|csv"\
-            + "|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower())
+            + "|rm|smil|wmv|swf|wma|zip|rar|gz|lif|php)$", parsed.path.lower())
 
     except TypeError:
         print ("TypeError for ", parsed)
